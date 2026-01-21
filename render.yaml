@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gmail-farmer-bot
+    env: python
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: API_TOKEN
+        value: 8502536019:AAFcuwfD_tDnlMGNwP0jQapNsakJIRjaSfc
+      - key: ADMIN_IDS
+        value: "6375918223,6337650436"
+      - key: PAYOUT_CHANNEL_ID
+        value: "-1003676517448"
+      - key: LOG_CHANNEL_ID
+        value: "-1003676517448"
+      - key: PORT
+        value: "10000"
