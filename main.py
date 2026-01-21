@@ -704,7 +704,8 @@ def init_db():
         last_bonus_time TEXT,
         mail_sell_earnings REAL DEFAULT 0,
         total_withdrawn REAL DEFAULT 0,
-        last_withdraw_time TEXT
+        last_withdraw_time TEXT,
+        last_active_time TEXT
     )''')
 
     # Support Tickets Table
@@ -776,10 +777,10 @@ def init_db():
         'min_withdraw': str(DEFAULT_MIN_WITHDRAW),
         'vip_min_withdraw': str(DEFAULT_VIP_MIN_WITHDRAW),
         'withdrawals_enabled': '1',
-        'notice': 'Welcome to Gmail Farmer Pro! Start earning today.',
+        'notice': 'Welcome to Gmail Bd Pro! Start earning today.',
         'earn_mail_sell': str(DEFAULT_EARN_MAIL_SELL),
         'auto_payment_enabled': '1' if AUTO_PAYMENT_ENABLED else '0',
-        'help_video_url': 'https://t.me/example_video'  # Add your help video URL here
+        'help_video_url': 'https://t.me/example_video'
     }
     
     for k, v in defaults.items():
@@ -899,6 +900,18 @@ def get_top10_bonus():
     except:
         return DEFAULT_VIP_BONUS
 
+def update_last_active(user_id):
+    """Update user's last active time"""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE users 
+        SET last_active_time = ? 
+        WHERE user_id = ?
+    """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_id))
+    conn.commit()
+    conn.close()
+
 async def verify_gmail_login(email, password):
     """Manual verification only - screenshot based"""
     return False, "Please upload screenshot for manual verification"
@@ -981,6 +994,10 @@ def get_main_menu_keyboard():
         KeyboardButton("👑 VIP Club"),
         KeyboardButton("📊 My Profile")
     )
+    kb.row(
+        KeyboardButton("📞 Admin Info"),
+        KeyboardButton("❓ Help")
+    )
     return kb
 
 # ==========================================
@@ -1019,10 +1036,10 @@ async def cmd_start(message: types.Message):
         
         email, password = generate_demo_creds()
         c.execute('''INSERT INTO users 
-            (user_id, username, join_date, referrer_id, current_email, current_password) 
-            VALUES (?, ?, ?, ?, ?, ?)''', 
+            (user_id, username, join_date, referrer_id, current_email, current_password, last_active_time) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)''', 
             (user_id, message.from_user.username, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-             referrer, email, password))
+             referrer, email, password, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         conn.commit()
         
         if referrer != 0:
@@ -1034,12 +1051,16 @@ async def cmd_start(message: types.Message):
                 await bot.send_message(referrer, f"🎉 **New Referral!**\n+{ref_rate} TK earned!\nTotal Referred: Check 'My Referral'")
             except:
                 pass
+    else:
+        # Update last active time for existing users
+        update_last_active(user_id)
+    
     conn.close()
     
     # Enhanced welcome message
     welcome_msg = """
 ┌────────────────────────────┐
-│   🚀 GMAIL FARMER PRO     │
+│   🚀 GMAIL BD PRO     │
 └────────────────────────────┘
 
 ✨ **Welcome to the Ultimate Gmail Farming Platform!** ✨
@@ -1060,6 +1081,9 @@ async def cmd_start(message: types.Message):
 ├─ Time: Within 24 Hours
 ├─ Methods: Bkash, Nagad, Rocket
 └─ ✅ 100% Trusted & Verified
+
+📞 **Need Help?**
+Click "❓ Help" or "📞 Admin Info"
 
 📈 **Start earning now!**
 """
@@ -1100,21 +1124,43 @@ async def vip_info(message: types.Message):
 # --- MY PROFILE ---
 @dp.message_handler(lambda message: message.text == "📊 My Profile", state="*")
 async def my_profile(message: types.Message):
-    if check_ban(message.from_user.id): return
-    user = get_user(message.from_user.id)
-    if not user: return
+    user_id = message.from_user.id
+    if check_ban(user_id): return
+    user = get_user(user_id)
+    if not user: 
+        await cmd_start(message)
+        return
     
-    verified_count = user[3]
+    # Update last active time
+    update_last_active(user_id)
+    
+    verified_count = user[3] or 0
     rank = "🐣 New User"
     if verified_count >= 10: rank = "🚜 Active Farmer"
     if verified_count >= 30: rank = "👑 Pro Farmer"
     if verified_count >= 50: rank = "💎 Legend Farmer"
     
-    ref_earnings = user[5] * float(get_setting('earn_referral'))
+    ref_earnings = (user[5] or 0) * float(get_setting('earn_referral'))
     
     # Check VIP status
     in_top10 = is_user_in_top10(user[0])
     vip_status = "👑 VIP (Top-10)" if in_top10 else "👤 Regular"
+    
+    last_active = user[20] or "Never"
+    if last_active != "Never":
+        last_active_time = datetime.strptime(last_active, "%Y-%m-%d %H:%M:%S")
+        time_diff = datetime.now() - last_active_time
+        if time_diff.total_seconds() < 60:
+            last_active = "Just now"
+        elif time_diff.total_seconds() < 3600:
+            minutes = int(time_diff.total_seconds() / 60)
+            last_active = f"{minutes} minutes ago"
+        elif time_diff.total_seconds() < 86400:
+            hours = int(time_diff.total_seconds() / 3600)
+            last_active = f"{hours} hours ago"
+        else:
+            days = int(time_diff.total_seconds() / 86400)
+            last_active = f"{days} days ago"
     
     msg = f"""
 ┌────────────────────────────┐
@@ -1127,14 +1173,14 @@ async def my_profile(message: types.Message):
 ⭐ **Status:** {vip_status}
 
 📈 **Earnings Summary:**
-├─ 💳 Current Balance: {user[4]:.2f}৳
+├─ 💳 Current Balance: {(user[4] or 0):.2f}৳
 ├─ 📧 Verified Accounts: {verified_count}
-├─ 👥 Referrals: {user[5]} (+{ref_earnings:.2f}৳)
-├─ 💸 Total Withdrawn: {user[18] or 0:.2f}৳
+├─ 👥 Referrals: {user[5] or 0} (+{ref_earnings:.2f}৳)
+├─ 💸 Total Withdrawn: {(user[18] or 0):.2f}৳
 └─ 📅 Joined: {str(user[11])[:10]}
 
-📊 **Performance:**
-├─ ⏰ Last Activity: {user[16] or 'Never'}
+📊 **Activity:**
+├─ ⏰ Last Active: {last_active}
 ├─ 🎯 Success Rate: 98%
 └─ ⭐ Trust Score: 100/100
 """
@@ -1143,11 +1189,17 @@ async def my_profile(message: types.Message):
 # --- REFERRAL MENU ---
 @dp.message_handler(lambda message: message.text == "👥 My Referral", state="*")
 async def referral_menu(message: types.Message):
-    if check_ban(message.from_user.id): return
-    user = get_user(message.from_user.id)
-    if not user: return
+    user_id = message.from_user.id
+    if check_ban(user_id): return
+    user = get_user(user_id)
+    if not user: 
+        await cmd_start(message)
+        return
     
-    ref_count = user[5]
+    # Update last active time
+    update_last_active(user_id)
+    
+    ref_count = user[5] or 0
     ref_earnings = ref_count * float(get_setting('earn_referral'))
     
     bot_username = (await bot.get_me()).username
@@ -1177,10 +1229,56 @@ async def referral_menu(message: types.Message):
     
     await message.answer(msg, parse_mode="Markdown")
 
+# --- ADMIN INFO ---
+@dp.message_handler(lambda message: message.text == "📞 Admin Info", state="*")
+async def admin_info(message: types.Message):
+    user_id = message.from_user.id
+    if check_ban(user_id): return
+    
+    # Update last active time
+    update_last_active(user_id)
+    
+    info_msg = """
+┌────────────────────────────┐
+│      📞 ADMIN INFO         │
+└────────────────────────────┘
+
+👑 **Owner:** Maim
+📧 **Email:** immaim55@gmail.com
+📱 **Telegram:** @cr_maim
+
+⏰ **Support Hours:**
+├─ Monday - Friday: 9 AM - 11 PM
+├─ Saturday: 10 AM - 10 PM  
+└─ Sunday: 11 AM - 9 PM
+
+📞 **Contact for:**
+├─ Account Issues
+├─ Payment Problems
+├─ Technical Support
+├─ Business Inquiries
+└─ Partnership Offers
+
+🚨 **Important:**
+• Always include your User ID
+• Screenshots help resolve issues faster
+• Be patient for responses
+• No spam messages
+
+💡 **Quick Help:**
+Click "❓ Help" for tutorials
+"""
+    
+    await message.answer(info_msg, parse_mode="Markdown")
+
 # --- HELP MENU ---
-@dp.message_handler(commands=['help'], state="*")
-async def help_menu_command(message: types.Message):
-    if check_ban(message.from_user.id): return
+@dp.message_handler(lambda message: message.text == "❓ Help", state="*")
+async def help_menu(message: types.Message):
+    user_id = message.from_user.id
+    if check_ban(user_id): return
+    
+    # Update last active time
+    update_last_active(user_id)
     
     help_video_url = get_setting('help_video_url') or "https://t.me/example_video"
     
@@ -1221,10 +1319,8 @@ async def help_menu_command(message: types.Message):
 • Time: Within 24 hours
 • Fee: No hidden fees
 
-📞 **CONTACT ADMIN:**
-├─ 🆔 User ID: {message.from_user.id}
-├─ 📧 Email: immaim55@gmail.com
-└─ 📱 Telegram: @cr_maim
+📞 **NEED HELP?**
+Click "📞 Admin Info" for contact details
 
 ⚠️ **IMPORTANT:**
 • Never share your password
@@ -1233,17 +1329,26 @@ async def help_menu_command(message: types.Message):
 """
     await message.answer(help_text, parse_mode="Markdown")
 
+@dp.message_handler(commands=['help'], state="*")
+async def help_menu_command(message: types.Message):
+    await help_menu(message)
+
 # --- DAILY BONUS ---
 @dp.message_handler(lambda message: message.text == "🎁 Daily Bonus", state="*")
 async def daily_bonus(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
+    
+    # Update last active time
+    update_last_active(user_id)
+    
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("SELECT balance, last_bonus_time FROM users WHERE user_id=?", (user_id,))
     row = c.fetchone()
     if not row: 
         conn.close()
+        await cmd_start(message)
         return
 
     balance, last_time_str = row
@@ -1278,8 +1383,8 @@ async def daily_bonus(message: types.Message):
 └────────────────────────────┘
 
 💰 **Amount:** +{bonus_amt}৳
-💳 **Previous Balance:** {balance:.2f}৳
-💎 **New Balance:** {balance + bonus_amt:.2f}৳
+💳 **Previous Balance:** {(balance or 0):.2f}৳
+💎 **New Balance:** {(balance or 0) + bonus_amt:.2f}৳
 
 ⏰ **Next bonus in 24 hours!**
 """)
@@ -1289,6 +1394,9 @@ async def daily_bonus(message: types.Message):
 @dp.message_handler(lambda message: message.text == "🏆 Leaderboard", state="*")
 async def leaderboard(message: types.Message):
     """Show real leaderboard"""
+    
+    # Update last active time
+    update_last_active(message.from_user.id)
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -1317,7 +1425,7 @@ async def leaderboard(message: types.Message):
         medal = "🥇" if idx==1 else ("🥈" if idx==2 else ("🥉" if idx==3 else f"{idx}."))
         
         display_name = (name or f"User{idx}")[:12]
-        msg += f"{medal} **{display_name}** - ৳{bal:,.0f} ({refs} refs)\n"
+        msg += f"{medal} **{display_name}** - ৳{(bal or 0):,.0f} ({refs or 0} refs)\n"
         
         if idx == 1:
             msg += "   ⭐ TOP EARNER ⭐\n"
@@ -1329,11 +1437,11 @@ async def leaderboard(message: types.Message):
     # User's rank
     user_id = message.from_user.id
     user = get_user(user_id)
-    if user and user[4] > 0:
+    if user and (user[4] or 0) > 0:
         # Simple rank calculation
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM users WHERE balance > ? AND banned=0", (user[4],))
+        c.execute("SELECT COUNT(*) FROM users WHERE balance > ? AND banned=0", (user[4] or 0,))
         rank = c.fetchone()[0] + 1
         conn.close()
         msg += f"\n🎯 **Your Rank:** #{rank}"
@@ -1345,17 +1453,24 @@ async def leaderboard(message: types.Message):
 # --- ACCOUNT INFO ---
 @dp.message_handler(lambda message: message.text == "💰 My Balance", state="*")
 async def menu_account(message: types.Message):
-    if check_ban(message.from_user.id): return
-    user = get_user(message.from_user.id)
-    if not user: return
+    user_id = message.from_user.id
+    if check_ban(user_id): return
     
-    verified_count = user[3]
+    # Update last active time
+    update_last_active(user_id)
+    
+    user = get_user(user_id)
+    if not user: 
+        await cmd_start(message)
+        return
+    
+    verified_count = user[3] or 0
     rank = "🐣 New User"
     if verified_count >= 10: rank = "🚜 Active Farmer"
     if verified_count >= 30: rank = "👑 Pro Farmer"
     if verified_count >= 50: rank = "💎 Legend Farmer"
     
-    ref_earnings = user[5] * float(get_setting('earn_referral'))
+    ref_earnings = (user[5] or 0) * float(get_setting('earn_referral'))
     
     # Check if user is in Top-10
     in_top10 = is_user_in_top10(user[0])
@@ -1367,15 +1482,15 @@ async def menu_account(message: types.Message):
 │      💰 MY BALANCE         │
 └────────────────────────────┘
 
-💳 **Current Balance:** {user[4]:.2f}৳
+💳 **Current Balance:** {(user[4] or 0):.2f}৳
 ⭐ **Status:** {vip_status}
 🎖️ **Rank:** {rank}
 
 📊 **Earnings Breakdown:**
 ├─ 📧 Verified Accounts: {verified_count}
-├─ 👥 Referrals: {user[5]} (+{ref_earnings:.2f}৳)
-├─ 💸 Total Withdrawn: {user[18] or 0:.2f}৳
-└─ 💰 Withdrawable: {user[4]:.2f}৳
+├─ 👥 Referrals: {user[5] or 0} (+{ref_earnings:.2f}৳)
+├─ 💸 Total Withdrawn: {(user[18] or 0):.2f}৳
+└─ 💰 Withdrawable: {(user[4] or 0):.2f}৳
 
 🎯 **Requirements:**
 ├─ 📱 Minimum Withdraw: {min_withdraw}৳
@@ -1391,6 +1506,10 @@ async def menu_account(message: types.Message):
 async def work_start(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
+    
+    # Update last active time
+    update_last_active(user_id)
+    
     conn = get_db_connection()
     c = conn.cursor()
     c.execute("SELECT status, current_email, current_password FROM users WHERE user_id=?", (user_id,))
@@ -1446,6 +1565,9 @@ async def work_start(message: types.Message):
 # --- MANUAL SCREENSHOT ---
 @dp.callback_query_handler(lambda c: c.data == "submit_ss", state="*")
 async def process_submit_ss(call: types.CallbackQuery):
+    # Update last active time
+    update_last_active(call.from_user.id)
+    
     await RegisterState.waiting_for_screenshot.set()
     await call.message.answer("📸 **Upload screenshot of Gmail inbox or welcome page:**\n\nMake sure the email address is clearly visible!")
 
@@ -1482,22 +1604,28 @@ async def process_photo_upload(message: types.Message, state: FSMContext):
 async def withdraw_start(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
+    
+    # Update last active time
+    update_last_active(user_id)
+    
     if get_setting('withdrawals_enabled') != '1':
         await message.answer("⚠️ Withdrawals temporarily disabled.")
         return
         
     user = get_user(user_id)
-    if not user: return
+    if not user: 
+        await cmd_start(message)
+        return
 
     min_w = float(get_setting('vip_min_withdraw') if user[13] else get_setting('min_withdraw'))
     
-    if user[4] < min_w:
+    if (user[4] or 0) < min_w:
         await message.answer(f"""
 ❌ **INSUFFICIENT BALANCE** ❌
 
 💰 **Required:** {min_w}৳
-💳 **Current:** {user[4]:.2f}৳
-📊 **Need More:** {min_w - user[4]:.2f}৳
+💳 **Current:** {(user[4] or 0):.2f}৳
+📊 **Need More:** {min_w - (user[4] or 0):.2f}৳
 
 💡 **Quick Ways to Earn:**
 • Complete Gmail tasks (+10৳ each)
@@ -1514,7 +1642,7 @@ async def withdraw_start(message: types.Message):
 │     💸 WITHDRAW FUNDS      │
 └────────────────────────────┘
 
-💰 **Balance:** {user[4]:.2f}৳
+💰 **Balance:** {(user[4] or 0):.2f}৳
 ⚙️ **Mode:** {payment_mode}
 ⏱️ **Time:** {'5 minutes' if status['auto_payment_enabled'] else '24 hours'}
 💳 **Minimum:** {min_w}৳
@@ -1565,7 +1693,7 @@ async def withdraw_amount(message: types.Message, state: FSMContext):
         amount = float(message.text)
         user = get_user(message.from_user.id)
         
-        if amount > user[4]:
+        if amount > (user[4] or 0):
             await message.answer("❌ **Insufficient Balance**")
             return
         
@@ -1618,6 +1746,9 @@ async def withdraw_amount(message: types.Message, state: FSMContext):
 @dp.message_handler(commands=['stats'], state="*")
 async def show_stats(message: types.Message):
     """Show real stats"""
+    
+    # Update last active time
+    update_last_active(message.from_user.id)
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -2318,6 +2449,13 @@ async def ban_user(message: types.Message, state: FSMContext):
     await state.finish()
 
 # --- BROADCAST ---
+@dp.callback_query_handler(lambda c: c.data == "admin_broadcast_start", state="*")
+async def broadcast_start(call: types.CallbackQuery):
+    if call.from_user.id not in ADMIN_IDS: return
+    await AdminBroadcast.waiting_for_message.set()
+    await call.message.answer("📢 **Enter broadcast message:**")
+    await call.answer()
+
 @dp.message_handler(state=AdminBroadcast.waiting_for_message)
 async def broadcast_send(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS:
@@ -2342,6 +2480,47 @@ async def broadcast_send(message: types.Message, state: FSMContext):
             pass
     await message.answer(f"✅ Sent to **{cnt}/{len(users)}** users!", parse_mode="Markdown")
     await state.finish()
+
+# ==========================================
+# FIXED MESSAGE HANDLERS FOR ALL MENU OPTIONS
+# ==========================================
+
+@dp.message_handler(content_types=['text'], state="*")
+async def handle_all_text_messages(message: types.Message):
+    """Handle all text messages that don't have specific handlers"""
+    user_id = message.from_user.id
+    
+    # If user sends any text and not in any state, update last active time
+    current_state = await dp.current_state(user=user_id).get_state()
+    if not current_state:
+        update_last_active(user_id)
+    
+    # Check if the message is a menu option that might have been missed
+    text = message.text.strip()
+    
+    if text == "🚀 Start Work":
+        await work_start(message)
+    elif text == "💰 My Balance":
+        await menu_account(message)
+    elif text == "🎁 Daily Bonus":
+        await daily_bonus(message)
+    elif text == "🏆 Leaderboard":
+        await leaderboard(message)
+    elif text == "💸 Withdraw":
+        await withdraw_start(message)
+    elif text == "👥 My Referral":
+        await referral_menu(message)
+    elif text == "👑 VIP Club":
+        await vip_info(message)
+    elif text == "📊 My Profile":
+        await my_profile(message)
+    elif text == "📞 Admin Info":
+        await admin_info(message)
+    elif text == "❓ Help":
+        await help_menu(message)
+    else:
+        # For any other text, show main menu
+        await message.answer("Please use the menu buttons to navigate.", reply_markup=get_main_menu_keyboard())
 
 # ==========================================
 # RENDER KEEP-ALIVE SERVER
@@ -2370,7 +2549,7 @@ async def on_startup(dp):
     await start_web_server() 
     
     print("="*50)
-    print("🚀 GMAIL FARMER PRO STARTING...")
+    print("🚀 GMAIL BD PRO STARTING...")
     print("="*50)
     
     # Initialize auto payment system
@@ -2393,11 +2572,13 @@ async def on_startup(dp):
 # ==========================================
 if __name__ == '__main__':
     print("="*50)
-    print("🤖 GMAIL FARMER PRO")
+    print("🤖 GMAIL BD PRO")
     print("📱 Platform: Multi-Platform Ready")
     print("💳 Auto Payment: Enabled")
     print("✅ Manual Verification: Enabled")
     print("👑 VIP System: Enabled")
+    print("📞 Admin Info: Added")
+    print("🔄 Menu Fixed: All options working properly")
     print("="*50)
     
     try:
