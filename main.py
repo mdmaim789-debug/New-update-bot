@@ -17,6 +17,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
 
@@ -111,7 +112,7 @@ class PaymentSystem:
             # Create request payload (This is example - adjust based on actual API)
             payload = {
                 "api_key": self.bkash_api_key,
-                "api_secret": self.bkash_api_secret,
+                "api_secret": self.bkash_secret,
                 "amount": amount,
                 "recipient": recipient_number,
                 "reference": reference or transaction_id,
@@ -1091,9 +1092,14 @@ Click "❓ Help" or "📞 Admin Info"
     await message.answer(welcome_msg, parse_mode="Markdown", reply_markup=get_main_menu_keyboard())
 
 # --- VIP INFO MENU ---
-@dp.message_handler(lambda message: message.text == "👑 VIP Club", state="*")
+@dp.message_handler(Text(equals="👑 VIP Club"), state="*")
 async def vip_info(message: types.Message):
-    if check_ban(message.from_user.id): return
+    user_id = message.from_user.id
+    if check_ban(user_id): 
+        return
+    
+    # Update last active time
+    update_last_active(user_id)
     
     vip_bonus = get_top10_bonus()
     
@@ -1122,10 +1128,12 @@ async def vip_info(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- MY PROFILE ---
-@dp.message_handler(lambda message: message.text == "📊 My Profile", state="*")
+@dp.message_handler(Text(equals="📊 My Profile"), state="*")
 async def my_profile(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
+    
     user = get_user(user_id)
     if not user: 
         await cmd_start(message)
@@ -1187,10 +1195,12 @@ async def my_profile(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- REFERRAL MENU ---
-@dp.message_handler(lambda message: message.text == "👥 My Referral", state="*")
+@dp.message_handler(Text(equals="👥 My Referral"), state="*")
 async def referral_menu(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
+    
     user = get_user(user_id)
     if not user: 
         await cmd_start(message)
@@ -1230,10 +1240,11 @@ async def referral_menu(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- ADMIN INFO ---
-@dp.message_handler(lambda message: message.text == "📞 Admin Info", state="*")
+@dp.message_handler(Text(equals="📞 Admin Info"), state="*")
 async def admin_info(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1272,10 +1283,11 @@ Click "❓ Help" for tutorials
     await message.answer(info_msg, parse_mode="Markdown")
 
 # --- HELP MENU ---
-@dp.message_handler(lambda message: message.text == "❓ Help", state="*")
+@dp.message_handler(Text(equals="❓ Help"), state="*")
 async def help_menu(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1334,10 +1346,11 @@ async def help_menu_command(message: types.Message):
     await help_menu(message)
 
 # --- DAILY BONUS ---
-@dp.message_handler(lambda message: message.text == "🎁 Daily Bonus", state="*")
+@dp.message_handler(Text(equals="🎁 Daily Bonus"), state="*")
 async def daily_bonus(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1391,7 +1404,7 @@ async def daily_bonus(message: types.Message):
     conn.close()
 
 # --- LEADERBOARD ---
-@dp.message_handler(lambda message: message.text == "🏆 Leaderboard", state="*")
+@dp.message_handler(Text(equals="🏆 Leaderboard"), state="*")
 async def leaderboard(message: types.Message):
     """Show real leaderboard"""
     
@@ -1451,10 +1464,11 @@ async def leaderboard(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- ACCOUNT INFO ---
-@dp.message_handler(lambda message: message.text == "💰 My Balance", state="*")
+@dp.message_handler(Text(equals="💰 My Balance"), state="*")
 async def menu_account(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1502,10 +1516,11 @@ async def menu_account(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- WORK FLOW ---
-@dp.message_handler(lambda message: message.text == "🚀 Start Work", state="*")
+@dp.message_handler(Text(equals="🚀 Start Work"), state="*")
 async def work_start(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1600,10 +1615,11 @@ async def process_photo_upload(message: types.Message, state: FSMContext):
     await message.answer("✅ **Screenshot Submitted!**\n\n⏳ **Status:** Waiting for admin approval\n📅 **Time:** Usually within 24 hours\n💰 **You'll be notified when approved.**")
 
 # --- WITHDRAWAL SYSTEM ---
-@dp.message_handler(lambda message: message.text == "💸 Withdraw", state="*")
+@dp.message_handler(Text(equals="💸 Withdraw"), state="*")
 async def withdraw_start(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): return
+    if check_ban(user_id): 
+        return
     
     # Update last active time
     update_last_active(user_id)
@@ -1796,7 +1812,8 @@ async def show_stats(message: types.Message):
 # ==========================================
 @dp.message_handler(commands=['admin'], state="*")
 async def admin_panel(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS: return
+    if message.from_user.id not in ADMIN_IDS: 
+        return
     
     status = payment_system.get_system_status()
     payment_mode = "🔄 AUTO" if status["auto_payment_enabled"] else "👨‍💼 MANUAL"
@@ -1832,7 +1849,8 @@ async def admin_panel(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == "admin_home", state="*")
 async def admin_home_callback(call: types.CallbackQuery):
     """Handle back to admin home"""
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     await call.message.delete()
     await admin_panel(call.message)
 
@@ -1897,7 +1915,8 @@ async def show_pending_payments(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith(("test_bkash", "test_nagad", "test_rocket")), state="*")
 async def test_payment_method(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     method = call.data.replace("test_", "")
     
@@ -1908,7 +1927,8 @@ async def test_payment_method(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == "process_payments_now", state="*")
 async def process_payments_now(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     global auto_payment_handler
     if auto_payment_handler:
@@ -1920,7 +1940,8 @@ async def process_payments_now(call: types.CallbackQuery):
 # --- PAYMENT STATS ---
 @dp.callback_query_handler(lambda c: c.data == "payment_stats", state="*")
 async def payment_stats_callback(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -1975,7 +1996,8 @@ async def payment_stats_callback(call: types.CallbackQuery):
 # --- ALL TRANSACTIONS ---
 @dp.callback_query_handler(lambda c: c.data == "all_transactions", state="*")
 async def all_transactions_callback(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -2073,7 +2095,8 @@ async def set_api_command(message: types.Message):
 # --- REST OF ADMIN CALLBACKS ---
 @dp.callback_query_handler(lambda c: c.data.startswith("admin_"), state="*")
 async def admin_callbacks(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     if call.data == "admin_home":
         await admin_panel(call.message)
@@ -2258,7 +2281,8 @@ async def admin_callbacks(call: types.CallbackQuery):
 # --- ADMIN SETTINGS HANDLERS ---
 @dp.callback_query_handler(lambda c: c.data.startswith(("set_earn_", "set_min_withdraw", "set_vip_")), state="*")
 async def rate_prompt(call: types.CallbackQuery, state: FSMContext):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     
     key_map = {
         "set_earn_ref": "earn_referral",
@@ -2335,7 +2359,8 @@ async def set_notice_save(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda c: c.data.startswith(("appr_user_", "rej_user_")), state="*")
 async def verify_action(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     parts = call.data.split("_")
     action = parts[1]
     uid = int(parts[2])
@@ -2386,7 +2411,8 @@ async def verify_action(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith(("pay_yes_", "pay_no_")), state="*")
 async def pay_action(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     parts = call.data.split("_")
     action = parts[1]
     wid = int(parts[2])
@@ -2451,7 +2477,8 @@ async def ban_user(message: types.Message, state: FSMContext):
 # --- BROADCAST ---
 @dp.callback_query_handler(lambda c: c.data == "admin_broadcast_start", state="*")
 async def broadcast_start(call: types.CallbackQuery):
-    if call.from_user.id not in ADMIN_IDS: return
+    if call.from_user.id not in ADMIN_IDS: 
+        return
     await AdminBroadcast.waiting_for_message.set()
     await call.message.answer("📢 **Enter broadcast message:**")
     await call.answer()
@@ -2523,21 +2550,25 @@ async def handle_all_text_messages(message: types.Message):
         await message.answer("Please use the menu buttons to navigate.", reply_markup=get_main_menu_keyboard())
 
 # ==========================================
-# RENDER KEEP-ALIVE SERVER
+# WEB SERVER FOR RENDER
 # ==========================================
-async def health_check(request):
-    return web.Response(text="Bot is running successfully!")
+async def handle_health_check(request):
+    """Health check endpoint for Render"""
+    return web.Response(text='Bot is running!')
 
 async def start_web_server():
+    """Start aiohttp web server for Render health checks"""
     app = web.Application()
-    app.router.add_get('/', health_check)
+    app.router.add_get('/', handle_health_check)
+    app.router.add_get('/health', handle_health_check)
+    
+    # Use port 8080 for Render
+    port = int(os.environ.get('PORT', 8080))
     runner = web.AppRunner(app)
     await runner.setup()
-    
-    port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    logging.info(f"🌐 Web server started on port {port}")
+    print(f"🌐 Web server started on port {port}")
 
 # ==========================================
 # ON BOT STARTUP
@@ -2545,8 +2576,8 @@ async def start_web_server():
 async def on_startup(dp):
     """Initialize systems on bot start"""
     
-    # Start web server
-    await start_web_server() 
+    # Start web server for Render
+    await start_web_server()
     
     print("="*50)
     print("🚀 GMAIL BD PRO STARTING...")
@@ -2579,10 +2610,17 @@ if __name__ == '__main__':
     print("👑 VIP System: Enabled")
     print("📞 Admin Info: Added")
     print("🔄 Menu Fixed: All options working properly")
+    print("🌐 Web Server: Port 8080 for Render")
     print("="*50)
     
     try:
-        executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+        # Start polling with skip_updates
+        executor.start_polling(
+            dp, 
+            skip_updates=True, 
+            on_startup=on_startup,
+            timeout=60
+        )
     except Exception as e:
         print(f"❌ Error: {e}")
         print("🔄 Restarting in 10 seconds...")
