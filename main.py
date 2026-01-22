@@ -17,7 +17,6 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
 
@@ -112,7 +111,7 @@ class PaymentSystem:
             # Create request payload (This is example - adjust based on actual API)
             payload = {
                 "api_key": self.bkash_api_key,
-                "api_secret": self.bkash_secret,
+                "api_secret": self.bkash_api_secret,
                 "amount": amount,
                 "recipient": recipient_number,
                 "reference": reference or transaction_id,
@@ -1092,10 +1091,10 @@ Click "❓ Help" or "📞 Admin Info"
     await message.answer(welcome_msg, parse_mode="Markdown", reply_markup=get_main_menu_keyboard())
 
 # --- VIP INFO MENU ---
-@dp.message_handler(Text(equals="👑 VIP Club"), state="*")
+@dp.message_handler(lambda message: message.text == "👑 VIP Club", state="*")
 async def vip_info(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1128,10 +1127,10 @@ async def vip_info(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- MY PROFILE ---
-@dp.message_handler(Text(equals="📊 My Profile"), state="*")
+@dp.message_handler(lambda message: message.text == "📊 My Profile", state="*")
 async def my_profile(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     user = get_user(user_id)
@@ -1195,10 +1194,10 @@ async def my_profile(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- REFERRAL MENU ---
-@dp.message_handler(Text(equals="👥 My Referral"), state="*")
+@dp.message_handler(lambda message: message.text == "👥 My Referral", state="*")
 async def referral_menu(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     user = get_user(user_id)
@@ -1240,10 +1239,10 @@ async def referral_menu(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- ADMIN INFO ---
-@dp.message_handler(Text(equals="📞 Admin Info"), state="*")
+@dp.message_handler(lambda message: message.text == "📞 Admin Info", state="*")
 async def admin_info(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1283,10 +1282,10 @@ Click "❓ Help" for tutorials
     await message.answer(info_msg, parse_mode="Markdown")
 
 # --- HELP MENU ---
-@dp.message_handler(Text(equals="❓ Help"), state="*")
+@dp.message_handler(lambda message: message.text == "❓ Help", state="*")
 async def help_menu(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1346,10 +1345,10 @@ async def help_menu_command(message: types.Message):
     await help_menu(message)
 
 # --- DAILY BONUS ---
-@dp.message_handler(Text(equals="🎁 Daily Bonus"), state="*")
+@dp.message_handler(lambda message: message.text == "🎁 Daily Bonus", state="*")
 async def daily_bonus(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1404,7 +1403,7 @@ async def daily_bonus(message: types.Message):
     conn.close()
 
 # --- LEADERBOARD ---
-@dp.message_handler(Text(equals="🏆 Leaderboard"), state="*")
+@dp.message_handler(lambda message: message.text == "🏆 Leaderboard", state="*")
 async def leaderboard(message: types.Message):
     """Show real leaderboard"""
     
@@ -1464,10 +1463,10 @@ async def leaderboard(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- ACCOUNT INFO ---
-@dp.message_handler(Text(equals="💰 My Balance"), state="*")
+@dp.message_handler(lambda message: message.text == "💰 My Balance", state="*")
 async def menu_account(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1516,10 +1515,10 @@ async def menu_account(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- WORK FLOW ---
-@dp.message_handler(Text(equals="🚀 Start Work"), state="*")
+@dp.message_handler(lambda message: message.text == "🚀 Start Work", state="*")
 async def work_start(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
@@ -1615,10 +1614,10 @@ async def process_photo_upload(message: types.Message, state: FSMContext):
     await message.answer("✅ **Screenshot Submitted!**\n\n⏳ **Status:** Waiting for admin approval\n📅 **Time:** Usually within 24 hours\n💰 **You'll be notified when approved.**")
 
 # --- WITHDRAWAL SYSTEM ---
-@dp.message_handler(Text(equals="💸 Withdraw"), state="*")
+@dp.message_handler(lambda message: message.text == "💸 Withdraw", state="*")
 async def withdraw_start(message: types.Message):
     user_id = message.from_user.id
-    if check_ban(user_id): 
+    if check_ban(user_id):
         return
     
     # Update last active time
