@@ -1,8 +1,3 @@
 aiogram==2.25.1
-aiohttp
-aiosqlite
-pytz
-requests
-emoji==2.8.0
-APScheduler
-Pillow
+aiohttp==3.9.1
+python-dotenv==1.0.0
