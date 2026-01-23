@@ -824,7 +824,7 @@ def get_main_menu_keyboard():
     return kb
 
 # ==========================================
-# USER HANDLERS (FIXED)
+# USER HANDLERS (FIXED - USING LAMBDA FILTERS)
 # ==========================================
 
 @dp.message_handler(commands=['start'], state="*")
@@ -879,7 +879,7 @@ async def cmd_start(message: types.Message):
     
     welcome_msg = """
 ┌────────────────────────────┐
-│   🚀 GMAIL BD PRO     │
+│   🚀 GMAIL BD PRO          │
 └────────────────────────────┘
 
 ✨ **Welcome to the Ultimate Gmail Farming Platform!** ✨
@@ -908,9 +908,9 @@ Click "❓ Help" or "📞 Admin Info"
 """
     await message.answer(welcome_msg, parse_mode="Markdown", reply_markup=get_main_menu_keyboard())
 
-# --- FIXED HANDLERS FOR ADMIN INFO, HELP, LEADERBOARD ---
+# --- FIXED HANDLERS USING LAMBDA FILTERS ---
 
-@dp.message_handler(Text(equals="👑 VIP Club"), state="*")
+@dp.message_handler(lambda message: message.text == "👑 VIP Club", state="*")
 async def vip_info(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -939,7 +939,7 @@ async def vip_info(message: types.Message):
 """
     await message.answer(msg, parse_mode="Markdown")
 
-@dp.message_handler(Text(equals="📊 My Profile"), state="*")
+@dp.message_handler(lambda message: message.text == "📊 My Profile", state="*")
 async def my_profile(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -960,7 +960,7 @@ async def my_profile(message: types.Message):
     
     msg = f"""
 ┌────────────────────────────┐
-│      📊 MY PROFILE        │
+│      📊 MY PROFILE         │
 └────────────────────────────┘
 
 🆔 **User ID:** `{user[0]}`
@@ -977,7 +977,7 @@ async def my_profile(message: types.Message):
 """
     await message.answer(msg, parse_mode="Markdown")
 
-@dp.message_handler(Text(equals="👥 My Referral"), state="*")
+@dp.message_handler(lambda message: message.text == "👥 My Referral", state="*")
 async def referral_menu(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1006,7 +1006,7 @@ async def referral_menu(message: types.Message):
     await message.answer(msg, parse_mode="Markdown")
 
 # --- FIXED: Admin Info ---
-@dp.message_handler(Text(equals="📞 Admin Info"), state="*")
+@dp.message_handler(lambda message: message.text == "📞 Admin Info", state="*")
 async def admin_info(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1038,7 +1038,7 @@ Click "❓ Help" for tutorials
     await message.answer(info_msg, parse_mode="Markdown")
 
 # --- FIXED: Help ---
-@dp.message_handler(Text(equals="❓ Help"), state="*")
+@dp.message_handler(lambda message: message.text == "❓ Help", state="*")
 async def help_menu(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1073,7 +1073,7 @@ Click "📞 Admin Info" for contact details
 async def help_menu_command(message: types.Message):
     await help_menu(message)
 
-@dp.message_handler(Text(equals="🎁 Daily Bonus"), state="*")
+@dp.message_handler(lambda message: message.text == "🎁 Daily Bonus", state="*")
 async def daily_bonus(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1113,7 +1113,7 @@ async def daily_bonus(message: types.Message):
     conn.close()
 
 # --- FIXED: Leaderboard ---
-@dp.message_handler(Text(equals="🏆 Leaderboard"), state="*")
+@dp.message_handler(lambda message: message.text == "🏆 Leaderboard", state="*")
 async def leaderboard(message: types.Message):
     update_last_active(message.from_user.id)
     conn = get_db_connection()
@@ -1152,7 +1152,7 @@ async def leaderboard(message: types.Message):
     finally:
         conn.close()
 
-@dp.message_handler(Text(equals="💰 My Balance"), state="*")
+@dp.message_handler(lambda message: message.text == "💰 My Balance", state="*")
 async def menu_account(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1189,7 +1189,7 @@ async def menu_account(message: types.Message):
 """
     await message.answer(msg, parse_mode="Markdown")
 
-@dp.message_handler(Text(equals="🚀 Start Work"), state="*")
+@dp.message_handler(lambda message: message.text == "🚀 Start Work", state="*")
 async def work_start(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1264,7 +1264,7 @@ async def process_photo_upload(message: types.Message, state: FSMContext):
     await state.finish()
     await message.answer("✅ **Screenshot Submitted!**\nWaiting for admin approval.")
 
-@dp.message_handler(Text(equals="💸 Withdraw"), state="*")
+@dp.message_handler(lambda message: message.text == "💸 Withdraw", state="*")
 async def withdraw_start(message: types.Message):
     user_id = message.from_user.id
     if check_ban(user_id): return
@@ -1632,7 +1632,7 @@ async def broadcast_send(message: types.Message, state: FSMContext):
 # ==========================================
 # CATCH ALL & STARTUP
 # ==========================================
-@dp.message_handler(content_types=['text'], state="*")
+@dp.message_handler(state="*")
 async def handle_all_text_messages(message: types.Message):
     # This handler acts as a backup
     text = message.text.strip()
@@ -1647,7 +1647,7 @@ async def handle_all_text_messages(message: types.Message):
     elif text == "📞 Admin Info": await admin_info(message)
     elif text == "❓ Help": await help_menu(message)
     else:
-        # Only show keyboard if it's not a command or state input
+        # Check if it's a state message first
         state = await dp.current_state(user=message.from_user.id).get_state()
         if not state:
             await message.answer("Use the menu buttons.", reply_markup=get_main_menu_keyboard())
