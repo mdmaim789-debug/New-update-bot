@@ -894,7 +894,11 @@ async def daily_bonus(message: types.Message):
 # LEADERBOARD
 @dp.message_handler(Text(equals="🏆 Leaderboard"), state="*")
 async def leaderboard(message: types.Message):
-    update_last_active(message.from_user.id)
+    user_id = message.from_user.id
+    if check_ban(user_id): 
+        return
+    
+    update_last_active(user_id)
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -923,7 +927,6 @@ async def leaderboard(message: types.Message):
         display_name = (name or f"User{idx}")[:12]
         msg += f"{medal} {display_name} - ৳{(bal or 0):,.0f}\n"
     
-    user_id = message.from_user.id
     user = get_user(user_id)
     if user and (user[4] or 0) > 0:
         conn = get_db_connection()
@@ -1165,7 +1168,11 @@ async def withdraw_amount(message: types.Message, state: FSMContext):
 # STATS
 @dp.message_handler(commands=['stats'], state="*")
 async def show_stats(message: types.Message):
-    update_last_active(message.from_user.id)
+    user_id = message.from_user.id
+    if check_ban(user_id): 
+        return
+    
+    update_last_active(user_id)
     
     conn = get_db_connection()
     c = conn.cursor()
