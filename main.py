@@ -5,9 +5,6 @@ import string
 import time
 import asyncio
 import os
-import requests
-import json
-from aiohttp import web
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -16,6 +13,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
+from aiohttp import web
 
 # Configure logging
 logging.basicConfig(
@@ -1472,22 +1470,28 @@ async def start_web_server():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"🌐 Web server started on port {port}")
+    logging.info(f"🌐 Web server started on port {port}")
 
 async def on_startup(dp):
     await start_web_server()
-    print("="*50)
-    print("🚀 GMAIL BD PRO STARTING...")
-    print("✅ Bot initialized!")
-    print("="*50)
+    logging.info("="*50)
+    logging.info("🚀 GMAIL BD PRO STARTING...")
+    logging.info("✅ Bot initialized!")
+    logging.info("="*50)
+
+# ERROR HANDLING
+@dp.errors_handler()
+async def errors_handler(update, exception):
+    logging.error(f"Update {update} caused error {exception}")
+    return True
 
 if __name__ == '__main__':
-    print("="*50)
-    print("🤖 GMAIL BD PRO")
-    print("="*50)
+    logging.info("="*50)
+    logging.info("🤖 GMAIL BD PRO")
+    logging.info("="*50)
     
     try:
         executor.start_polling(dp, skip_updates=True, on_startup=on_startup, timeout=60)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logging.error(f"❌ Error: {e}")
         time.sleep(10)
