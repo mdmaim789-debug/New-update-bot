@@ -26,7 +26,7 @@ logging.basicConfig(
 # ==========================================
 # CONFIGURATION
 # ==========================================
-API_TOKEN = os.environ.get('BOT_TOKEN', '8502536019:AAFcuwfD_tDnlMGNwP0jQapNsakJIRjaSfc')
+API_TOKEN = os.environ.get('BOT_TOKEN', '8502536019:AAHJuQ64pMsNfMwCe0c1eAUKNeRcUnp3iEA')
 ADMIN_IDS = [6375918223, 6337650436]
 PAYOUT_CHANNEL_ID = -1003676517448
 LOG_CHANNEL_ID = -1003676517448
