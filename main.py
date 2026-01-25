@@ -5,6 +5,7 @@ import string
 import time
 import asyncio
 import os
+import html
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -539,6 +540,13 @@ def get_main_menu_keyboard():
     )
     return kb
 
+def safe_username(username):
+    """Sanitize username for markdown"""
+    if not username:
+        return "Not set"
+    # Escape special markdown characters
+    return username.replace('_', '\\_').replace('*', '\\*').replace('`', '\\`').replace('[', '\\[').replace(']', '\\]')
+
 # ==========================================
 # USER HANDLERS
 # ==========================================
@@ -658,7 +666,7 @@ async def vip_info(message: types.Message):
     
     await message.answer(msg, parse_mode="Markdown")
 
-# MY PROFILE
+# MY PROFILE - FIXED VERSION
 @dp.message_handler(Text(equals="📊 My Profile"), state="*")
 async def my_profile(message: types.Message):
     user_id = message.from_user.id
@@ -701,28 +709,31 @@ async def my_profile(message: types.Message):
         except:
             last_active = str(last_active)[:10]
     
+    # Use safe username to avoid markdown errors
+    safe_username_text = safe_username(user[1])
+    
     msg = f"""
 ┌────────────────────────────┐
 │      📊 MY PROFILE        │
 └────────────────────────────┘
 
-🆔 **User ID:** `{user[0]}`
-👤 **Username:** @{user[1] or 'Not set'}
-🎖️ **Rank:** {rank}
-⭐ **Status:** {vip_status}
+🆔 User ID: {user[0]}
+👤 Username: @{safe_username_text}
+🎖️ Rank: {rank}
+⭐ Status: {vip_status}
 
-📈 **Earnings:**
+📈 Earnings:
 ├─ 💳 Balance: {(user[4] or 0):.2f}৳
 ├─ 📧 Verified: {verified_count}
 ├─ 👥 Referrals: {user[5] or 0} (+{ref_earnings:.2f}৳)
 ├─ 💸 Withdrawn: {(user[18] or 0):.2f}৳
 └─ 📅 Joined: {str(user[11])[:10]}
 
-📊 **Activity:**
+📊 Activity:
 ├─ ⏰ Last Active: {last_active}
 └─ ⭐ Trust Score: 100/100
 """
-    await message.answer(msg, parse_mode="Markdown")
+    await message.answer(msg, parse_mode=None)  # Disable markdown for safety
 
 # REFERRAL
 @dp.message_handler(Text(equals="👥 My Referral"), state="*")
@@ -749,20 +760,20 @@ async def referral_menu(message: types.Message):
 │      👥 REFERRAL SYSTEM    │
 └────────────────────────────┘
 
-🔗 **Your Referral Link:**
-`{ref_link}`
+🔗 Your Referral Link:
+{ref_link}
 
-📊 **Your Stats:**
+📊 Your Stats:
 ├─ 👥 Total Referred: {ref_count}
 ├─ 💰 Total Earnings: {ref_earnings:.2f}৳
 └─ 🎯 Rate: {get_setting('earn_referral')}৳ per referral
 
-💡 **Share & Earn!**
+💡 Share & Earn!
 """
     
-    await message.answer(msg, parse_mode="Markdown")
+    await message.answer(msg, parse_mode=None)  # Disable markdown
 
-# ADMIN INFO
+# ADMIN INFO - FIXED VERSION
 @dp.message_handler(Text(equals="📞 Admin Info"), state="*")
 async def admin_info(message: types.Message):
     user_id = message.from_user.id
@@ -776,27 +787,27 @@ async def admin_info(message: types.Message):
 │      📞 ADMIN INFO         │
 └────────────────────────────┘
 
-👑 **Owner:** Maim
-📧 **Email:** immaim55@gmail.com
-📱 **Telegram:** @cr_maim
+👑 Owner: Maim
+📧 Email: immaim55@gmail.com
+📱 Telegram: @cr_maim
 
-⏰ **Support Hours:**
+⏰ Support Hours:
 ├─ Monday - Friday: 9 AM - 11 PM
 ├─ Saturday: 10 AM - 10 PM  
 └─ Sunday: 11 AM - 9 PM
 
-📞 **Contact for:**
+📞 Contact for:
 ├─ Account Issues
 ├─ Payment Problems
 ├─ Technical Support
 └─ Business Inquiries
 
-💡 **Quick Help:** Click "❓ Help"
+💡 Quick Help: Click "❓ Help"
 """
     
-    await message.answer(info_msg, parse_mode="Markdown")
+    await message.answer(info_msg, parse_mode=None)  # Disable markdown
 
-# HELP MENU
+# HELP MENU - FIXED VERSION
 @dp.message_handler(Text(equals="❓ Help"), state="*")
 async def help_menu(message: types.Message):
     user_id = message.from_user.id
@@ -811,25 +822,25 @@ async def help_menu(message: types.Message):
 │       📖 HELP GUIDE        │
 └────────────────────────────┘
 
-🎬 **Video Tutorial:**
+🎬 Video Tutorial:
 {help_video_url}
 
-📋 **HOW TO EARN:**
+📋 HOW TO EARN:
 
-1️⃣ **Click "🚀 Start Work"**
-2️⃣ **Create Gmail Account**
-3️⃣ **Upload Screenshot**
-4️⃣ **Get Paid!**
+1️⃣ Click "🚀 Start Work"
+2️⃣ Create Gmail Account
+3️⃣ Upload Screenshot
+4️⃣ Get Paid!
 
-💰 **WITHDRAWAL:**
+💰 WITHDRAWAL:
 • Minimum: 100৳ (50৳ VIP)
 • Methods: Bkash, Nagad, Rocket
 • Time: 24 hours
 
-📞 **Need Help?**
+📞 Need Help?
 Click "📞 Admin Info"
 """
-    await message.answer(help_text, parse_mode="Markdown")
+    await message.answer(help_text, parse_mode=None)  # Disable markdown
 
 @dp.message_handler(commands=['help'], state="*")
 async def help_menu_command(message: types.Message):
@@ -869,7 +880,7 @@ async def daily_bonus(message: types.Message):
             else:
                 rem = 86400 - diff
                 hrs, mins = int(rem // 3600), int((rem % 3600) // 60)
-                await message.answer(f"⏳ **Daily Bonus Cooldown!**\nCome back in: {hrs}h {mins}m")
+                await message.answer(f"⏳ Daily Bonus Cooldown!\nCome back in: {hrs}h {mins}m")
                 conn.close()
                 return
         except:
@@ -880,13 +891,13 @@ async def daily_bonus(message: types.Message):
                  (bonus_amt, current_time.strftime("%Y-%m-%d %H:%M:%S"), user_id))
         conn.commit()
         await message.answer(f"""
-✅ **Daily Bonus Claimed!**
+✅ Daily Bonus Claimed!
 
 💰 Amount: +{bonus_amt}৳
 💳 New Balance: {(balance or 0) + bonus_amt:.2f}৳
 
 ⏰ Next bonus in 24 hours!
-""")
+""", parse_mode=None)
     conn.close()
 
 # LEADERBOARD
@@ -932,9 +943,9 @@ async def leaderboard(message: types.Message):
         c.execute("SELECT COUNT(*) FROM users WHERE balance > ? AND banned=0", (user[4] or 0,))
         rank = c.fetchone()[0] + 1
         conn.close()
-        msg += f"\n🎯 **Your Rank:** #{rank}"
+        msg += f"\n🎯 Your Rank: #{rank}"
     
-    await message.answer(msg, parse_mode="Markdown")
+    await message.answer(msg, parse_mode=None)
 
 # BALANCE
 @dp.message_handler(Text(equals="💰 My Balance"), state="*")
@@ -960,15 +971,15 @@ async def menu_account(message: types.Message):
 │      💰 MY BALANCE         │
 └────────────────────────────┘
 
-💳 **Balance:** {(user[4] or 0):.2f}৳
-⭐ **Status:** {vip_status}
+💳 Balance: {(user[4] or 0):.2f}৳
+⭐ Status: {vip_status}
 
-📊 **Earnings:**
+📊 Earnings:
 ├─ 📧 Verified: {verified_count}
 ├─ 👥 Referrals: {user[5] or 0} (+{ref_earnings:.2f}৳)
 └─ 💸 Withdrawn: {(user[18] or 0):.2f}৳
 """
-    await message.answer(msg, parse_mode="Markdown")
+    await message.answer(msg, parse_mode=None)
 
 # START WORK
 @dp.message_handler(Text(equals="🚀 Start Work"), state="*")
@@ -1003,15 +1014,15 @@ async def work_start(message: types.Message):
 │     🚀 CREATE GMAIL        │
 └────────────────────────────┘
 
-🎯 **Task #{user[3]+1}**
-💰 **Earning:** 10৳
+🎯 Task #{user[3]+1}
+💰 Earning: 10৳
 
-📋 **Credentials:**
-├─ 👤 Name: `Maim`
-├─ 📧 Email: `{email}`
-└─ 🔑 Password: `{password}`
+📋 Credentials:
+├─ 👤 Name: Maim
+├─ 📧 Email: {email}
+└─ 🔑 Password: {password}
 
-⚠️ **Instructions:**
+⚠️ Instructions:
 1️⃣ Go to Gmail.com
 2️⃣ Create account
 3️⃣ Use EXACT details above
@@ -1021,7 +1032,7 @@ async def work_start(message: types.Message):
     kb = InlineKeyboardMarkup(row_width=1)
     kb.add(InlineKeyboardButton("📸 Upload Screenshot", callback_data="submit_ss"))
     
-    await message.answer(msg, parse_mode="Markdown", reply_markup=kb)
+    await message.answer(msg, parse_mode=None, reply_markup=kb)
     conn.close()
 
 # SCREENSHOT
@@ -1029,7 +1040,7 @@ async def work_start(message: types.Message):
 async def process_submit_ss(call: types.CallbackQuery):
     update_last_active(call.from_user.id)
     await RegisterState.waiting_for_screenshot.set()
-    await call.message.answer("📸 **Upload screenshot:**")
+    await call.message.answer("📸 Upload screenshot:")
 
 @dp.message_handler(content_types=['photo'], state=RegisterState.waiting_for_screenshot)
 async def process_photo_upload(message: types.Message, state: FSMContext):
@@ -1051,13 +1062,13 @@ async def process_photo_upload(message: types.Message, state: FSMContext):
     conn.close()
 
     if LOG_CHANNEL_ID:
-        caption = f"📄 **Manual Review**\n👤 User: `{user_id}`\n📧 `{email}`\n🔑 `{password}`"
+        caption = f"📄 Manual Review\n👤 User: {user_id}\n📧 {email}\n🔑 {password}"
         try: 
-            await bot.send_photo(LOG_CHANNEL_ID, photo_id, caption=caption, parse_mode="Markdown")
+            await bot.send_photo(LOG_CHANNEL_ID, photo_id, caption=caption, parse_mode=None)
         except: pass
 
     await state.finish()
-    await message.answer("✅ **Screenshot Submitted!**\n⏳ Waiting for approval")
+    await message.answer("✅ Screenshot Submitted!\n⏳ Waiting for approval")
 
 # WITHDRAWAL
 @dp.message_handler(Text(equals="💸 Withdraw"), state="*")
@@ -1080,27 +1091,27 @@ async def withdraw_start(message: types.Message):
     min_w = float(get_setting('vip_min_withdraw') if user[13] else get_setting('min_withdraw'))
     
     if (user[4] or 0) < min_w:
-        await message.answer(f"❌ **Insufficient Balance**\n\n💰 Required: {min_w}৳\n💳 Current: {(user[4] or 0):.2f}৳")
+        await message.answer(f"❌ Insufficient Balance\n\n💰 Required: {min_w}৳\n💳 Current: {(user[4] or 0):.2f}৳")
         return
     
     status = payment_system.get_system_status()
     payment_mode = "🔄 AUTO" if status["auto_payment_enabled"] else "👨‍💼 MANUAL"
     
     msg = f"""
-💸 **WITHDRAW FUNDS**
+💸 WITHDRAW FUNDS
 
-💰 **Balance:** {(user[4] or 0):.2f}৳
-⚙️ **Mode:** {payment_mode}
-💳 **Minimum:** {min_w}৳
+💰 Balance: {(user[4] or 0):.2f}৳
+⚙️ Mode: {payment_mode}
+💳 Minimum: {min_w}৳
 
-📱 **Select Payment Method:**
+📱 Select Payment Method:
 """
     
     kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
     kb.add("Bkash", "Nagad")
     kb.add("Rocket", "❌ Cancel")
     await WithdrawState.waiting_for_method.set()
-    await message.answer(msg, reply_markup=kb, parse_mode="Markdown")
+    await message.answer(msg, reply_markup=kb, parse_mode=None)
 
 @dp.message_handler(state=WithdrawState.waiting_for_method)
 async def withdraw_method(message: types.Message, state: FSMContext):
@@ -1111,14 +1122,14 @@ async def withdraw_method(message: types.Message, state: FSMContext):
     
     await state.update_data(method=message.text)
     await WithdrawState.waiting_for_number.set()
-    await message.answer("📱 **Enter Mobile Number:**\nExample: `01712345678`", 
-                        parse_mode="Markdown", reply_markup=types.ReplyKeyboardRemove())
+    await message.answer("📱 Enter Mobile Number:\nExample: 01712345678", 
+                        parse_mode=None, reply_markup=types.ReplyKeyboardRemove())
 
 @dp.message_handler(state=WithdrawState.waiting_for_number)
 async def withdraw_number(message: types.Message, state: FSMContext):
     await state.update_data(number=message.text)
     await WithdrawState.waiting_for_amount.set()
-    await message.answer("💰 **Enter Amount:**")
+    await message.answer("💰 Enter Amount:")
 
 @dp.message_handler(state=WithdrawState.waiting_for_amount)
 async def withdraw_amount(message: types.Message, state: FSMContext):
@@ -1127,7 +1138,7 @@ async def withdraw_amount(message: types.Message, state: FSMContext):
         user = get_user(message.from_user.id)
         
         if amount > (user[4] or 0):
-            await message.answer("❌ **Insufficient Balance**")
+            await message.answer("❌ Insufficient Balance")
             return
         
         data = await state.get_data()
@@ -1145,19 +1156,19 @@ async def withdraw_amount(message: types.Message, state: FSMContext):
         await state.finish()
         
         await message.answer(f"""
-✅ **WITHDRAWAL SUBMITTED!**
+✅ WITHDRAWAL SUBMITTED!
 
 💰 Amount: {amount}৳
 📱 Method: {data['method']}
 📞 To: {data['number']}
 
 ⏳ Processing within 24h
-""", reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+""", reply_markup=get_main_menu_keyboard(), parse_mode=None)
         
         for admin_id in ADMIN_IDS:
             try:
                 await bot.send_message(admin_id, 
-                    f"💸 **New Withdrawal**\n👤 `{message.from_user.id}`\n💰 {amount} {data['method']}\n📱 {data['number']}")
+                    f"💸 New Withdrawal\n👤 {message.from_user.id}\n💰 {amount} {data['method']}\n📱 {data['number']}", parse_mode=None)
             except: pass
             
     except ValueError:
@@ -1195,15 +1206,15 @@ async def show_stats(message: types.Message):
 │     📊 LIVE STATS         │
 └────────────────────────────┘
 
-👥 **Users:** {total_users:,}
-✅ **Verified:** {verified:,}
-💰 **Balance:** {total_balance:,.2f}৳
-💸 **Paid Out:** {total_paid:,.2f}৳
+👥 Users: {total_users:,}
+✅ Verified: {verified:,}
+💰 Balance: {total_balance:,.2f}৳
+💸 Paid Out: {total_paid:,.2f}৳
 
-✅ **100% Trusted**
+✅ 100% Trusted
 """
     
-    await message.answer(stats_msg, parse_mode="Markdown")
+    await message.answer(stats_msg, parse_mode=None)
 
 # ADMIN PANEL
 @dp.message_handler(commands=['admin'], state="*")
@@ -1219,7 +1230,7 @@ async def admin_panel(message: types.Message):
     kb.add(InlineKeyboardButton("📈 Stats", callback_data="admin_stats"),
            InlineKeyboardButton("💰 Rates", callback_data="admin_earnings"))
     
-    await message.answer("👮‍♂️ **ADMIN PANEL**", reply_markup=kb, parse_mode="Markdown")
+    await message.answer("👮‍♂️ ADMIN PANEL", reply_markup=kb, parse_mode=None)
 
 @dp.callback_query_handler(lambda c: c.data == "admin_home", state="*")
 async def admin_home_callback(call: types.CallbackQuery):
@@ -1245,14 +1256,14 @@ async def admin_callbacks(call: types.CallbackQuery):
             return
             
         uid, email, pwd, file_id = row
-        caption = f"📋 **Pending**\n👤 `{uid}`\n📧 `{email}`\n🔑 `{pwd}`"
+        caption = f"📋 Pending\n👤 {uid}\n📧 {email}\n🔑 {pwd}"
         kb = InlineKeyboardMarkup(row_width=2).add(
             InlineKeyboardButton("✅ APPROVE", callback_data=f"appr_user_{uid}"),
             InlineKeyboardButton("❌ REJECT", callback_data=f"rej_user_{uid}")
         ).add(InlineKeyboardButton("🔙 Back", callback_data="admin_home"))
         
         await call.message.delete()
-        await bot.send_photo(call.from_user.id, file_id, caption=caption, reply_markup=kb, parse_mode="Markdown")
+        await bot.send_photo(call.from_user.id, file_id, caption=caption, reply_markup=kb, parse_mode=None)
         await call.answer()
 
     elif call.data == "admin_withdrawals":
@@ -1267,12 +1278,12 @@ async def admin_callbacks(call: types.CallbackQuery):
             return
             
         wid, uid, amt, method, num = row
-        txt = f"💸 **Payment #{wid}**\n👤 `{uid}`\n💰 {amt} TK\n📱 {method}: {num}"
+        txt = f"💸 Payment #{wid}\n👤 {uid}\n💰 {amt} TK\n📱 {method}: {num}"
         kb = InlineKeyboardMarkup(row_width=2).add(
             InlineKeyboardButton("✅ PAID", callback_data=f"pay_yes_{wid}"),
             InlineKeyboardButton("❌ REJECT", callback_data=f"pay_no_{wid}")
         ).add(InlineKeyboardButton("🔙 Back", callback_data="admin_home"))
-        await call.message.edit_text(txt, reply_markup=kb, parse_mode="Markdown")
+        await call.message.edit_text(txt, reply_markup=kb, parse_mode=None)
         await call.answer()
         
     elif call.data == "admin_stats":
@@ -1283,22 +1294,22 @@ async def admin_callbacks(call: types.CallbackQuery):
         total_users, total_balance = res if res else (0, 0)
         conn.close()
         
-        stats = f"📈 **Stats**\n👥 Users: {total_users}\n💰 Balance: {total_balance or 0:.2f} TK"
+        stats = f"📈 Stats\n👥 Users: {total_users}\n💰 Balance: {total_balance or 0:.2f} TK"
         kb = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Back", callback_data="admin_home"))
-        await call.message.edit_text(stats, reply_markup=kb, parse_mode="Markdown")
+        await call.message.edit_text(stats, reply_markup=kb, parse_mode=None)
         await call.answer()
 
     elif call.data == "admin_earnings":
         ref_rate = get_setting('earn_referral')
         gmail_rate = get_setting('earn_gmail')
         
-        txt = f"💰 **Rates**\n👥 Referral: {ref_rate} TK\n📧 Gmail: {gmail_rate} TK"
+        txt = f"💰 Rates\n👥 Referral: {ref_rate} TK\n📧 Gmail: {gmail_rate} TK"
         kb = InlineKeyboardMarkup(row_width=2)
         kb.add(InlineKeyboardButton("👥 Set Ref", callback_data="set_earn_ref"),
                InlineKeyboardButton("📧 Set Gmail", callback_data="set_earn_gmail"))
         kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_home"))
         
-        await call.message.edit_text(txt, reply_markup=kb, parse_mode="Markdown")
+        await call.message.edit_text(txt, reply_markup=kb, parse_mode=None)
         await call.answer()
 
     elif call.data == "admin_ban_menu":
@@ -1355,12 +1366,12 @@ async def verify_action(call: types.CallbackQuery):
                  (total, uid))
         
         try:
-            await bot.send_message(uid, f"✅ **Approved!**\n💰 Earned: {total} TK")
+            await bot.send_message(uid, f"✅ Approved!\n💰 Earned: {total} TK", parse_mode=None)
         except: pass
     else:
         c.execute("UPDATE users SET status='rejected' WHERE user_id=?", (uid,))
         try:
-            await bot.send_message(uid, "❌ **Rejected**")
+            await bot.send_message(uid, "❌ Rejected", parse_mode=None)
         except: pass
     
     conn.commit()
@@ -1390,12 +1401,12 @@ async def pay_action(call: types.CallbackQuery):
         c.execute("UPDATE withdrawals SET status='paid', processed_time=? WHERE id=?", 
                  (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), wid))
         try:
-            await bot.send_message(uid, f"✅ **PAID!**\n💰 {amt} TK")
+            await bot.send_message(uid, f"✅ PAID!\n💰 {amt} TK", parse_mode=None)
         except: pass
     else:
         c.execute("UPDATE withdrawals SET status='rejected' WHERE id=?", (wid,))
         try:
-            await bot.send_message(uid, "❌ **Rejected**")
+            await bot.send_message(uid, "❌ Rejected", parse_mode=None)
         except: pass
     
     conn.commit()
@@ -1448,7 +1459,7 @@ async def broadcast_send(message: types.Message, state: FSMContext):
     cnt = 0
     for u in users:
         try:
-            await bot.send_message(u[0], f"📢 **ANNOUNCEMENT**\n\n{message.text}", parse_mode="Markdown")
+            await bot.send_message(u[0], f"📢 ANNOUNCEMENT\n\n{message.text}", parse_mode=None)
             cnt += 1
             await asyncio.sleep(0.05)
         except:
